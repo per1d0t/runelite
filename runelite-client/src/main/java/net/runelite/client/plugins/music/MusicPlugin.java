@@ -28,6 +28,8 @@ package net.runelite.client.plugins.music;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Provides;
+
+import java.awt.*;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
@@ -50,14 +52,7 @@ import net.runelite.api.SoundEffectID;
 import net.runelite.api.SpriteID;
 import net.runelite.api.VarClientInt;
 import net.runelite.api.VarPlayer;
-import net.runelite.api.events.AreaSoundEffectPlayed;
-import net.runelite.api.events.BeforeRender;
-import net.runelite.api.events.GameStateChanged;
-import net.runelite.api.events.ScriptCallbackEvent;
-import net.runelite.api.events.SoundEffectPlayed;
-import net.runelite.api.events.VarClientIntChanged;
-import net.runelite.api.events.VolumeChanged;
-import net.runelite.api.events.WidgetLoaded;
+import net.runelite.api.events.*;
 import net.runelite.api.widgets.JavaScriptCallback;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetConfig;
@@ -75,14 +70,22 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.tooltip.Tooltip;
 import net.runelite.client.ui.overlay.tooltip.TooltipManager;
+import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.Client;
+import lombok.extern.slf4j.Slf4j;
+
+
 
 @PluginDescriptor(
 	name = "Music",
 	description = "Adds search and filter for the music list, and additional volume control",
 	tags = {"sound", "volume"}
 )
+
+@Slf4j
 public class MusicPlugin extends Plugin
 {
+
 	private static final Set<Integer> SOURCELESS_PLAYER_SOUNDS = ImmutableSet.of(
 		SoundEffectID.TELEPORT_VWOOP
 	);
@@ -143,6 +146,15 @@ public class MusicPlugin extends Plugin
 
 	private MusicSlider hoveredSlider;
 
+	//nathan
+	private Integer previousWorldRegion = 0;
+	private String musicFile = "D:/Desktop/Programs/runeliteDev/runelite/runelite-client/src/main/resources/music/AutumnVoyage.wav";
+	private Thread mp = new MusicPlayer(musicFile); //music player thread
+
+
+
+
+
 	@Override
 	protected void startUp()
 	{
@@ -152,6 +164,10 @@ public class MusicPlugin extends Plugin
 			applyMusicVolumeConfig();
 			updateMusicOptions();
 		});
+
+		//start music thread
+		mp.start();
+		//new Thread(mp).start();
 	}
 
 	@Override
@@ -174,6 +190,7 @@ public class MusicPlugin extends Plugin
 		return configManager.getConfig(MusicConfig.class);
 	}
 
+
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
@@ -184,6 +201,48 @@ public class MusicPlugin extends Plugin
 			tracks = null;
 		}
 	}
+
+
+
+	@Subscribe
+	public void onGameTick(GameTick gameTick){
+		Integer currentRegion = client.getLocalPlayer().getWorldLocation().getRegionID();
+		if(!previousWorldRegion.equals(currentRegion)){
+			previousWorldRegion = currentRegion;
+			log.debug("Playing new song for region ID: " + currentRegion);
+			if(musicFile.equals("D:/Desktop/Programs/runeliteDev/runelite/runelite-client/src/main/resources/music/Garden.wav")){
+				musicFile = "D:/Desktop/Programs/runeliteDev/runelite/runelite-client/src/main/resources/music/AutumnVoyage.wav";
+			}else{
+				musicFile = "D:/Desktop/Programs/runeliteDev/runelite/runelite-client/src/main/resources/music/Garden.wav";
+			}
+			((MusicPlayer)mp).setAudioFile(musicFile);
+			((MusicPlayer)mp).setPlayCompleted(true);
+
+
+			/*Set<Thread> threads = Thread.getAllStackTraces().keySet();
+			Boolean mpThreadRunning = false;
+			Thread existingMPThread = null;
+			for (Thread t : threads) {
+				if(t.getName().equals("mp") && !t.getState().equals("TERMINATED")){
+					mpThreadRunning = true;
+					existingMPThread = t;
+				}
+			}
+			if(mpThreadRunning){
+				existingMPThread.close();
+			}*/
+
+			//todo:play a new song
+
+
+		}
+		//log.debug("WORLD POINT->" + client.getLocalPlayer().getWorldLocation().getRegionID());
+
+	}
+
+
+
+
 
 	@Subscribe
 	public void onWidgetLoaded(WidgetLoaded widgetLoaded)
